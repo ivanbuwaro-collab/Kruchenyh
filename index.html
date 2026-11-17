@@ -47,6 +47,8 @@ p{margin:0}
 .top-logo{display:block;line-height:0;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
 .top-logo img{height:24px;width:auto}
 .is-scrolled .top::before,.is-scrolled .top-logo{opacity:1;visibility:visible}
+.top>.btn{opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s,background-color .2s,color .2s}
+.cta-gone .top>.btn{opacity:1;visibility:visible}
 
 /* ---------- кнопки ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;font:700 12px/1 var(--block);letter-spacing:.07em;text-transform:uppercase;text-decoration:none;color:var(--paper);background:none;border:1px solid var(--paper);border-radius:0;cursor:pointer;transition:background-color .15s,color .15s}
@@ -868,6 +870,8 @@ function frame(now) {
 }
 
 window.addEventListener('scroll', () => { scrollGoalCalc(); kick(); }, { passive: true });
+// кнопка «Записаться» в шапке появляется, когда большая кнопка первого экрана ушла с экрана
+new IntersectionObserver(([e]) => document.documentElement.classList.toggle('cta-gone', !e.isIntersecting && e.boundingClientRect.top < 80), { rootMargin: '-64px 0px 0px 0px' }).observe($('.hero-act .btn'));
 let rt = 0;
 let lastW = 0;
 window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { const w = document.documentElement.clientWidth; if (w !== lastW && !intro.done && lastW) finishIntro(performance.now()); lastW = w; layout(); kick(); }, 120); });

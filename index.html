@@ -741,17 +741,29 @@ function buildScrollPath() {
       { x: tx, y: ty }
     ];
   }
-  const P = curl(W, 4); let m = -1e9; const M = P.map(p => (m = Math.max(m, p[1])));
-  sp = { P, L: lengths(P), M, y0: P[0][1], ymax: m, tx, ty, s1: Math.max(120, ty - VH * 0.42) };
+  const P = curl(W, 4), L = lengths(P);
+  // Сколько прокрутки «стоит» каждый кусок пути: часть по спуску вниз, часть по настоящей длине.
+  // Иначе петля, которая почти не опускается, пролетает за пару пикселей прокрутки.
+  const wLen = narrow ? 0.6 : 0.45; let m = P[0][1]; const raw = [0];
+  for (let i = 1; i < P.length; i++) { const m2 = Math.max(m, P[i][1]); raw.push(raw[i - 1] + (m2 - m) * (1 - wLen) + (L[i] - L[i - 1]) * wLen); m = m2; }
+  const U = raw.map(v => v / (raw[raw.length - 1] || 1));
+  sp = { P, L, U, tx, ty, s1: Math.max(120, ty - VH * 0.42), vmax: narrow ? 560 : 900, t: 0 };
   scrollGoalCalc(); if (reduce || !intro.done) scrollShown = scrollGoal;
 }
 function scrollGoalCalc() {
   if (!sp) return;
   const p = clamp(window.scrollY / sp.s1, 0, 1);
   if (p <= 0) { scrollGoal = 0; return; }
-  const lim = sp.y0 + (sp.ymax - sp.y0) * p; let lo = 0, hi = sp.P.length - 1;
-  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (sp.M[mid] <= lim) lo = mid; else hi = mid - 1; }
+  let lo = 0, hi = sp.P.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (sp.U[mid] <= p) lo = mid; else hi = mid - 1; }
   scrollGoal = p >= 1 ? sp.P.length - 1 : lo;
+}
+// дробный индекс точки пути ↔ пройденная длина
+const sOfIdx = f => { const i = Math.floor(f), j = Math.min(sp.L.length - 1, i + 1); return sp.L[i] + (sp.L[j] - sp.L[i]) * (f - i); };
+function idxOfS(s) {
+  const L = sp.L; let lo = 0, hi = L.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (L[mid] <= s) lo = mid; else hi = mid - 1; }
+  const j = Math.min(L.length - 1, lo + 1); return lo + (L[j] > L[lo] ? clamp((s - L[lo]) / (L[j] - L[lo]), 0, 1) : 0);
 }
 
 /* =====================================================================
@@ -778,7 +790,15 @@ function frame(now) {
 
   // прокрутка
   const prevShown = scrollShown;
-  if (Math.abs(scrollGoal - scrollShown) > 0.4) { scrollShown += (scrollGoal - scrollShown) * (reduce ? 1 : 0.17); busy = true; } else scrollShown = scrollGoal;
+  if (sp && Math.abs(scrollGoal - scrollShown) > 0.4 && !reduce) {
+    // шар догоняет прокрутку плавно и не быстрее sp.vmax пикселей пути в секунду
+    const dt = clamp((now - (sp.t || now - 16)) / 1000, 0.001, 0.05);
+    const s0 = sOfIdx(scrollShown), s1 = sp.L[scrollGoal];
+    let ds = (s1 - s0) * (1 - Math.exp(-dt * 9)); const cap = sp.vmax * dt;
+    ds = clamp(ds, -cap, cap); if (Math.abs(ds) < 0.6) ds = Math.sign(s1 - s0) * Math.min(0.6, Math.abs(s1 - s0));
+    scrollShown = idxOfS(s0 + ds); if (Math.abs(scrollGoal - scrollShown) <= 0.4) scrollShown = scrollGoal;
+    sp.t = now; busy = true;
+  } else { scrollShown = scrollGoal; if (sp) sp.t = 0; }
   const onPath = scrollShown > 0.5;
   if (!onPath && prevShown > 0.5) { ball.x = home.x; ball.y = home.y; }
   if (onPath && prevShown <= 0.5) {

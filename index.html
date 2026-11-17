@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Кручёных: запись на стол</title>
+<meta name="description" content="Бильярдный клуб и арт-пространство «Кручёных» на Конногвардейском бульваре. Запись на стол.">
+<link rel="icon" href="data:,">
+<link rel="preload" href="fonts/rimma-sans-bold.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="fonts/misto.woff" as="font" type="font/woff" crossorigin>
+<link rel="preload" href="fonts/steinbeck-regular.woff" as="font" type="font/woff" crossorigin>
+<style>
+:root{
+  /* Кручёных, набросок 2. Первый экран: шар рисует знак. Сразу под ним бумажный бланк записи.
+     Чёрное поле, белая линия шара, красный только мелком. Выключка влево. */
+  --ink:#0b0b0b;
+  --paper:#f5f5f5;
+  --red:#bc1c27;
+  --sheet:#efebe8;
+  --mute:#a39d99;
+  --mute-ink:#5c5552;
+  --block:"Rimma Sans","Arial Black",sans-serif;
+  --thin:"Misto","Rimma Sans",sans-serif;
+  --body:"Steinbeck",system-ui,sans-serif;
+  --gut:clamp(16px,4.4vw,64px);
+  --wide:1440px;
+}
+@font-face{font-family:"Rimma Sans";src:url(fonts/rimma-sans-bold.woff) format("woff");font-weight:700;font-display:block}
+@font-face{font-family:"Misto";src:url(fonts/misto.woff) format("woff");font-weight:400;font-display:block}
+@font-face{font-family:"Steinbeck";src:url(fonts/steinbeck-regular.woff) format("woff");font-weight:400;font-style:normal;font-display:block}
+@font-face{font-family:"Steinbeck";src:url(fonts/steinbeck-italic.woff) format("woff");font-weight:400;font-style:italic;font-display:block}
+
+*,*::before,*::after{box-sizing:border-box}
+html{color-scheme:dark;background:var(--ink);-webkit-text-size-adjust:100%;scroll-behavior:smooth}
+body{margin:0;background:var(--ink);color:var(--paper);font:400 17px/1.55 var(--body);letter-spacing:.008em;font-synthesis:none;overflow-x:clip;-webkit-font-smoothing:antialiased}
+img{display:block;max-width:100%;height:auto}
+a{color:inherit}
+p{margin:0}
+:focus-visible{outline:2px solid var(--paper);outline-offset:3px}
+.vh{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+#stage{position:fixed;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+
+/* ---------- шапка ---------- */
+.top{position:fixed;inset:0 0 auto;z-index:20;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px var(--gut);pointer-events:none}
+.top>*{pointer-events:auto}
+.top::before{content:"";position:absolute;inset:0 0 -28px;z-index:-1;background:linear-gradient(var(--ink) 58%,rgba(11,11,11,0));opacity:0;transition:opacity .3s}
+.top-logo{display:block;line-height:0;opacity:0;visibility:hidden;transition:opacity .3s,visibility .3s}
+.top-logo img{height:24px;width:auto}
+.is-scrolled .top::before,.is-scrolled .top-logo{opacity:1;visibility:visible}
+
+/* ---------- кнопки ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 18px;font:700 12px/1 var(--block);letter-spacing:.07em;text-transform:uppercase;text-decoration:none;color:var(--paper);background:none;border:1px solid var(--paper);border-radius:0;cursor:pointer;transition:background-color .15s,color .15s}
+.btn:hover{background:var(--paper);color:var(--ink)}
+.btn--solid{background:var(--paper);color:var(--ink);min-height:54px;padding:0 26px;font-size:13px}
+.btn--solid:hover{background:var(--red);border-color:var(--red);color:var(--paper)}
+
+/* ---------- смешанный набор, как в брендбуке ---------- */
+.mix{margin:0;font-family:var(--block);font-weight:700;line-height:.9;text-transform:uppercase;letter-spacing:-.004em}
+.mix .ln{display:block;white-space:nowrap}
+.mix .m,.mix .i{font-family:var(--thin);font-weight:400}
+.mix .i{display:inline-block;transform:skewX(-13deg)}
+
+/* ---------- первый экран ---------- */
+.hero{position:relative;z-index:2;min-height:100vh;min-height:100svh;max-width:var(--wide);margin:0 auto;padding:84px var(--gut) clamp(28px,5vh,56px);display:flex;flex-direction:column;justify-content:center;gap:clamp(40px,8vh,84px);-webkit-tap-highlight-color:transparent}
+.logo{width:min(1120px,100%);aspect-ratio:1489/321;margin:clamp(0px,4vh,40px) auto 0}
+.hero-row{width:min(1120px,100%);margin:0 auto;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 48px}
+.hero-say{font-size:clamp(18px,1.55vw,22px);line-height:1.4}
+.hero-say span{display:block;color:var(--mute)}
+.hero-act{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.hint{font-size:14px;line-height:1.4;color:var(--mute);text-align:right;transition:opacity .4s}
+.hint.is-used{opacity:.45}
+
+/* ---------- запись ---------- */
+.book{position:relative;z-index:2;max-width:var(--wide);margin:0 auto;padding:clamp(72px,11vh,128px) var(--gut) clamp(64px,10vh,112px);display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:32px;align-items:start;scroll-margin-top:0}
+.book-h{grid-column:1/span 6;grid-row:1;font-size:clamp(46px,6.7vw,100px);padding-top:.32em}
+.book-side{grid-column:1/span 5;grid-row:2}
+.book-lead{font-size:clamp(18px,1.5vw,21px);line-height:1.5;max-width:23em}
+.book-photo{margin:clamp(28px,4vh,44px) 0 0}
+.book-photo img{width:100%;aspect-ratio:4/3;object-fit:cover}
+.book-photo figcaption{margin-top:10px;font-size:14px;color:var(--mute)}
+.sheet{grid-column:7/-1;grid-row:1/span 2;background:var(--sheet);color:var(--ink);padding:clamp(22px,2.6vw,40px)}
+
+/* Ё в заголовке: точки над ней — лузы, правая ждёт шар */
+.yo{position:relative;display:inline-block}
+.pk{position:absolute;width:.36em;pointer-events:none}
+.pk img{width:100%}
+.pk-l{left:.06em;top:-.15em}
+.pk-r{left:.47em;top:-.13em}
+.pk-r .fill{position:absolute;inset:0;opacity:0;transform:scale(.4);transition:opacity .2s,transform .45s cubic-bezier(.3,1.7,.5,1)}
+.pk-r.is-in .fill{opacity:1;transform:none}
+
+/* ---------- бланк ---------- */
+fieldset{border:0;margin:0;padding:0;min-width:0}
+.sheet legend,.lbl{display:block;padding:0;margin:0 0 8px;font:400 14px/1.3 var(--body);color:var(--mute-ink)}
+.sheet legend{float:left;width:100%}
+.sheet legend+*{clear:both}
+.row{padding:18px 0;border-top:1px solid rgba(11,11,11,.16)}
+.row:first-child{padding-top:0;border-top:0}
+.chips{display:flex;flex-wrap:wrap;gap:4px 2px;margin:0 -10px}
+.chip{position:relative;display:inline-flex}
+.chip input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.chip input:disabled{cursor:not-allowed}
+.chip span{display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:48px;min-height:46px;padding:6px 12px;font:400 17px/1.15 var(--body);white-space:nowrap;background:no-repeat center/100% 100%;transition:color .15s}
+.chip input:checked+span{background-image:url(assets/d-circle.webp)}
+.chip input:focus-visible+span{outline:2px solid var(--ink);outline-offset:-2px}
+.chip input:disabled+span{color:rgba(11,11,11,.28);text-decoration:line-through;text-decoration-thickness:1px}
+.chip:hover input:not(:disabled):not(:checked)+span{color:var(--red)}
+.day>span{min-width:52px;padding:6px 6px;gap:2px}
+.day input:checked+span{background-image:none}
+.day .dn{padding:5px 9px;background:no-repeat center/100% 100%}
+.day input:checked+span .dn{background-image:url(assets/d-circle.webp)}
+.day .wd{font-size:13px;color:var(--mute-ink)}
+.day .dn{font:700 21px/1.1 var(--block)}
+.day input:disabled+span .dn{color:inherit}
+.day.other>span{flex-direction:row;align-self:flex-end;min-height:40px;padding:6px 12px;font-size:16px}
+.day.other input:checked+span{background-image:url(assets/d-circle.webp)}
+.otherday{max-width:240px;margin-top:10px}
+.otherday[hidden]{display:none}
+.times .chip span{min-width:64px;font-variant-numeric:tabular-nums}
+.empty{font-size:15px;color:var(--mute-ink);padding:10px 0}
+.pair{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:16px 28px}
+.sentence{display:flex;flex-wrap:wrap;align-items:center;gap:0 6px;font-size:19px}
+.sentence .chips{margin:0}
+.sentence .chip span{min-width:46px;font:700 19px/1 var(--block)}
+.step{display:inline-flex;align-items:center;gap:4px}
+.step button{width:44px;height:44px;display:grid;place-items:center;background:none;border:1px solid rgba(11,11,11,.55);border-radius:50%;color:var(--ink);font:400 22px/1 var(--body);cursor:pointer}
+.step button:hover{border-color:var(--red);color:var(--red)}
+.step button:disabled{opacity:.3;cursor:not-allowed}
+.step output{min-width:2.2ch;text-align:center;font:700 22px/1 var(--block);font-variant-numeric:tabular-nums}
+.fields{display:flex;flex-wrap:wrap;gap:8px 28px}
+.field{flex:1 1 200px;display:flex;flex-direction:column}
+.field label{font-size:14px;color:var(--mute-ink)}
+.field input{width:100%;font:400 19px/1.3 var(--body);color:var(--ink);background:transparent;border:0;border-bottom:1px solid var(--ink);border-radius:0;padding:8px 0 9px;outline:none}
+.field input:focus-visible{border-bottom:2px solid var(--ink);padding-bottom:8px}
+.field input[aria-invalid=true]{border-bottom-color:var(--red)}
+.field input::placeholder{color:rgba(11,11,11,.35)}
+.msg{min-height:1.35em;margin-top:4px;font-size:13.5px;line-height:1.35;color:var(--red)}
+.go{width:100%;min-height:58px;background:var(--ink);color:var(--paper);border:0;border-radius:0;font:700 14px/1 var(--block);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:background-color .15s}
+.go:hover{background:var(--red)}
+.go:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.fine{margin-top:12px;font-size:13px;line-height:1.4;color:var(--mute-ink)}
+.sheet .msg:empty{visibility:hidden}
+
+/* заполненный бланк, как их сертификат */
+.done{padding:14px;display:grid;grid-template-columns:minmax(96px,30%) minmax(0,1fr)}
+.done[hidden]{display:none}
+.done-mark{background:var(--ink);display:grid;place-items:center;padding:20px}
+.done-mark img{width:100%;max-width:150px}
+.done-body{padding:clamp(14px,2vw,30px) clamp(16px,2.2vw,32px) clamp(10px,1.4vw,20px)}
+.done-h{font-size:clamp(30px,3vw,44px);margin-bottom:14px}
+.done-row{padding:12px 0;border-top:1px solid rgba(11,11,11,.3);font-size:18px;line-height:1.4}
+.done-row:first-of-type{border-top:0}
+.done-note{margin:16px 0 18px;font-size:14px;line-height:1.45;color:var(--mute-ink)}
+.done .btn{color:var(--ink);border-color:var(--ink)}
+.done .btn:hover{background:var(--ink);color:var(--paper)}
+
+/* ---------- подвал ---------- */
+.foot{position:relative;z-index:2;max-width:var(--wide);margin:0 auto;padding:36px var(--gut) 40px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:28px;align-items:end}
+.foot::before{content:"";grid-column:1/-1;border-top:1px solid #2b2928;margin-bottom:8px}
+.foot-mark{grid-column:1/span 4}
+.foot-mark img{width:min(100%,300px)}
+.foot-info{grid-column:7/-1;display:flex;flex-wrap:wrap;gap:20px 40px;font-size:16px;line-height:1.5}
+.foot-info p span{display:block;color:var(--mute)}
+.foot-info a{text-underline-offset:5px}
+.foot-fine{grid-column:1/-1;font-size:13px;color:var(--mute)}
+
+/* ---------- планшет и телефон ---------- */
+@media (max-width:900px){
+  .book{row-gap:28px}
+  .book-h{grid-column:1/-1;padding-top:.3em}
+  .book-side{grid-column:1/-1;grid-row:2}
+  .sheet{grid-column:1/-1;grid-row:3}
+  .book-photo{display:none}
+  .foot-mark{grid-column:1/-1}
+  .foot-info{grid-column:1/-1}
+}
+@media (max-width:640px){
+  .top-logo img{height:20px}
+  .hero{min-height:86vh;min-height:86svh;padding-top:72px;padding-bottom:12px;gap:40px}
+  .book{padding-top:44px}
+  .hero-row{flex-direction:column;align-items:stretch}
+  .hero-act{align-items:stretch}
+  .hero-act .btn--solid{width:100%}
+  .hint{text-align:left}
+  .chips{margin:0 -6px}
+  .day>span{min-width:44px;padding:6px 2px}
+  .times .chip span{min-width:60px;padding:6px 8px}
+  .done{grid-template-columns:1fr}
+  .done-mark{padding:18px}
+  .done-body{padding:20px 6px 6px}
+  .done-mark img{max-width:110px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+<canvas id="stage" aria-hidden="true"></canvas>
+
+<header class="top">
+  <a class="top-logo" href="#top" aria-label="Кручёных, наверх"><img src="assets/wordmark.webp" alt="" width="1508" height="345"></a>
+  <a class="btn" href="#zapis">Записаться</a>
+</header>
+
+<main>
+<section class="hero" id="top" aria-labelledby="hero-h">
+  <h1 class="vh" id="hero-h">Кручёных, бильярдный клуб и арт-пространство</h1>
+  <div class="logo" id="logo" role="img" aria-label="Кручёных"></div>
+  <div class="hero-row">
+    <p class="hero-say">Бильярдный клуб и&nbsp;арт-пространство<span>Конногвардейский бульвар,&nbsp;6</span></p>
+    <div class="hero-act">
+      <a class="btn btn--solid" href="#zapis">Записаться на&nbsp;стол</a>
+      <p class="hint" id="hint">Нажмите в&nbsp;любом месте, и&nbsp;шар покатится туда</p>
+    </div>
+  </div>
+</section>
+
+<section class="book" id="zapis" aria-labelledby="book-h">
+  <h2 class="mix book-h" id="book-h" aria-label="Запишём на стол">
+    <span class="ln" aria-hidden="true"><span>З</span><span class="m">А</span><span>П</span><span>И</span><span class="m">Ш</span><span class="yo">Е<img class="pk pk-l" src="assets/dot-l.webp" alt="" width="180" height="148"><span class="pk pk-r" id="pocket"><img class="ring" src="assets/ring-r.webp" alt="" width="178" height="126"><img class="fill" src="assets/dot-r.webp" alt="" width="178" height="126"></span></span><span>М</span></span>
+    <span class="ln" aria-hidden="true"><span class="m">Н</span><span>А</span> <span>С</span><span class="m">Т</span><span>О</span><span class="i">Л</span></span>
+  </h2>
+
+  <div class="book-side">
+    <p class="book-lead">Стол на&nbsp;пару часов или весь Красный зал для компании. Выберите день и&nbsp;время, а&nbsp;мы подтвердим запись.</p>
+    <figure class="book-photo">
+      <img src="assets/p-red-hall.webp" alt="Красный зал: бильярдный стол под четырьмя лампами у красной стены" width="2048" height="1365" loading="lazy">
+      <figcaption>Красный зал</figcaption>
+    </figure>
+  </div>
+
+  <form class="sheet" id="form" novalidate aria-label="Запись на стол">
+    <fieldset class="row">
+      <legend>Что бронируем</legend>
+      <div class="chips">
+        <label class="chip"><input type="radio" name="what" value="table" checked><span>Стол</span></label>
+        <label class="chip"><input type="radio" name="what" value="hall"><span>Красный зал целиком</span></label>
+      </div>
+    </fieldset>
+
+    <fieldset class="row">
+      <legend id="day-l">День</legend>
+      <div class="chips days" id="days"></div>
+      <div class="field otherday" id="otherday" hidden>
+        <label for="od">Дата</label>
+        <input type="date" id="od">
+      </div>
+    </fieldset>
+
+    <fieldset class="row">
+      <legend>Время</legend>
+      <div class="chips times" id="times"></div>
+      <p class="msg" id="time-msg"></p>
+    </fieldset>
+
+    <div class="row pair">
+      <fieldset>
+        <legend class="vh">Сколько часов</legend>
+        <div class="sentence">
+          <span>На</span>
+          <span class="chips">
+            <label class="chip"><input type="radio" name="hours" value="1"><span>1</span></label>
+            <label class="chip"><input type="radio" name="hours" value="2" checked><span>2</span></label>
+            <label class="chip"><input type="radio" name="hours" value="3"><span>3</span></label>
+          </span>
+          <span>час(а) игры</span>
+        </div>
+      </fieldset>
+      <div>
+        <span class="lbl" id="guests-l">Сколько вас</span>
+        <div class="step" role="group" aria-labelledby="guests-l">
+          <button type="button" id="g-minus" aria-label="Меньше">−</button>
+          <output id="guests" aria-live="polite">2</output>
+          <button type="button" id="g-plus" aria-label="Больше">+</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="row fields">
+      <div class="field">
+        <label for="name">Имя</label>
+        <input id="name" name="name" autocomplete="given-name" required>
+        <p class="msg" id="name-msg"></p>
+      </div>
+      <div class="field">
+        <label for="phone">Телефон</label>
+        <input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+7" required>
+        <p class="msg" id="phone-msg"></p>
+      </div>
+    </div>
+
+    <div class="row">
+      <button class="go" type="submit">Записаться</button>
+      <p class="fine">Нажимая «Записаться», вы&nbsp;соглашаетесь на&nbsp;обработку персональных данных.</p>
+    </div>
+  </form>
+
+  <div class="sheet done" id="done" hidden tabindex="-1" aria-labelledby="done-h">
+    <div class="done-mark"><img src="assets/yo.webp" alt="" width="415" height="422"></div>
+    <div class="done-body">
+      <p class="mix done-h" id="done-h"><span>Б</span><span class="m">Р</span><span>О</span><span>Н</span><span class="m">Ь</span></p>
+      <p class="done-row" id="d-what"></p>
+      <p class="done-row" id="d-when"></p>
+      <p class="done-row" id="d-who"></p>
+      <p class="done-row">Конногвардейский бульвар,&nbsp;6</p>
+      <p class="done-note">Это набросок, поэтому заявка никуда не&nbsp;отправилась.</p>
+      <button class="btn" type="button" id="edit">Изменить</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <a class="foot-mark" href="#top" aria-label="Кручёных, наверх"><img src="assets/wordmark.webp" alt="" width="1508" height="345" loading="lazy"></a>
+  <div class="foot-info">
+    <p><a href="https://yandex.ru/maps/?text=%D0%9A%D0%BE%D0%BD%D0%BD%D0%BE%D0%B3%D0%B2%D0%B0%D1%80%D0%B4%D0%B5%D0%B9%D1%81%D0%BA%D0%B8%D0%B9%20%D0%B1%D1%83%D0%BB%D1%8C%D0%B2%D0%B0%D1%80%2C%206%2C%20%D0%A1%D0%B0%D0%BD%D0%BA%D1%82-%D0%9F%D0%B5%D1%82%D0%B5%D1%80%D0%B1%D1%83%D1%80%D0%B3">Конногвардейский бульвар,&nbsp;6</a><span>Работаем с&nbsp;умеренного дня и&nbsp;до&nbsp;вопиющего вечера</span></p>
+    <p><a href="https://t.me/kruchenyh">Телеграм</a><br><a href="https://www.instagram.com/kruchenyh_bc/">Инстаграм</a></p>
+  </div>
+  <p class="foot-fine">Набросок сайта</p>
+</footer>
+
+<script src="assets/logo-data.js"></script>
+<script>
+(() => {
+'use strict';
+const GEO = window.KRUCHENYH_LOGO;
+const $ = (s, el = document) => el.querySelector(s);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const TAU = Math.PI * 2, PAPER = '#f5f5f5', LETTER = '#f1edec', RED = '#bc1c27';
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const E = {
+  out: t => 1 - Math.pow(1 - t, 3),
+  inout: t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2,
+  back: t => { const c = 1.5; return 1 + (c + 1) * Math.pow(t - 1, 3) + c * Math.pow(t - 1, 2); },
+  pow: k => t => 1 - Math.pow(1 - t, k)
+};
+
+/* =====================================================================
+   Геометрия: ломаные, длины, сплайн Катмулла — Рома и «кручёный» путь с петлёй
+   ===================================================================== */
+function lengths(P) { const L = [0]; for (let i = 1; i < P.length; i++) L.push(L[i - 1] + Math.hypot(P[i][0] - P[i - 1][0], P[i][1] - P[i - 1][1])); return L; }
+function idxAt(L, s) { let lo = 0, hi = L.length - 1; if (s >= L[hi]) return hi - 1; while (hi - lo > 1) { const m = (lo + hi) >> 1; if (L[m] <= s) lo = m; else hi = m; } return lo; }
+function at(P, L, s) {
+  const n = P.length - 1; s = clamp(s, 0, L[n]);
+  const i = idxAt(L, s), j = Math.min(n, i + 1), t = (s - L[i]) / ((L[j] - L[i]) || 1);
+  const dx = P[j][0] - P[i][0], dy = P[j][1] - P[i][1], l = Math.hypot(dx, dy) || 1;
+  return [P[i][0] + dx * t, P[i][1] + dy * t, dx / l, dy / l];
+}
+function strokeTo(c, P, L, s) {
+  if (s <= 0 || P.length < 2) return;
+  c.beginPath(); c.moveTo(P[0][0], P[0][1]);
+  let i = 1; for (; i < P.length && L[i] <= s; i++) c.lineTo(P[i][0], P[i][1]);
+  if (i < P.length) { const q = at(P, L, s); c.lineTo(q[0], q[1]); }
+  c.stroke();
+}
+function cr(p0, p1, p2, p3, t) {
+  const t2 = t * t, t3 = t2 * t;
+  return [0.5 * (2 * p1[0] + (p2[0] - p0[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (3 * p1[0] - p0[0] - 3 * p2[0] + p3[0]) * t3),
+          0.5 * (2 * p1[1] + (p2[1] - p0[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (3 * p1[1] - p0[1] - 3 * p2[1] + p3[1]) * t3)];
+}
+/* W: [{x, y, loop?: {side, r, e}}]. В точке с петлёй путь делает вытянутый эллипс, касательный к ходу. */
+function curl(W, step = 4) {
+  const C = W.map(w => [w.x, w.y]), out = [];
+  for (let i = 0; i < C.length - 1; i++) {
+    const p0 = C[Math.max(0, i - 1)], p1 = C[i], p2 = C[i + 1], p3 = C[Math.min(C.length - 1, i + 2)];
+    const lp = W[i].loop;
+    if (lp && i > 0) {
+      let tx = p2[0] - p0[0], ty = p2[1] - p0[1]; const l = Math.hypot(tx, ty) || 1; tx /= l; ty /= l;
+      const nx = -ty * lp.side, ny = tx * lp.side, r = lp.r, e = lp.e || 1.6, n = Math.max(28, Math.ceil(r * 1.3));
+      for (let k = 1; k < n; k++) { const f = k / n * TAU, c = 1 - Math.cos(f), sn = Math.sin(f); out.push([p1[0] + nx * r * e * c + tx * r * sn, p1[1] + ny * r * e * c + ty * r * sn]); }
+    }
+    const n = Math.max(2, Math.ceil(Math.hypot(p2[0] - p1[0], p2[1] - p1[1]) / step));
+    for (let k = 0; k < n; k++) out.push(cr(p0, p1, p2, p3, k / n));
+  }
+  out.push(C[C.length - 1].slice());
+  return out;
+}
+
+/* =====================================================================
+   Знак: слои Ё (растр из брендбука), буквы (вектор), путь шара по белой линии
+   ===================================================================== */
+const BOX = GEO.box, REG = GEO.reg, CW = GEO.crop[0], CH = GEO.crop[1];
+const WALK = GEO.walk, WALK_LC = lengths(WALK);
+const BOWL = GEO.bowl, BOWL_L = lengths(BOWL);
+const BOWL_S0 = (() => { let m = 0; BOWL.forEach((p, i) => { if (p[1] > BOWL[m][1]) m = i; }); return BOWL_L[m]; })();
+const REDP = GEO.red.map(p => { const P = curl(p.pts.map(q => ({ x: q[0], y: q[1] })), 3); return { w: p.w, P, L: lengths(P) }; });
+const DOTS = GEO.dots;
+const LET = GEO.letters.map(l => ({ ...l, path: new Path2D(l.d), ax: l.box[0] + l.box[2] / 2, ay: l.box[1] + l.box[3] }));
+// время прохода по линии: на крутых поворотах шар притормаживает
+const WALK_T = (() => {
+  const T = [0];
+  for (let i = 1; i < WALK.length; i++) {
+    const a = WALK[Math.max(0, i - 2)], b = WALK[i - 1], c = WALK[i];
+    const a1 = Math.atan2(b[1] - a[1], b[0] - a[0]), a2 = Math.atan2(c[1] - b[1], c[0] - b[0]);
+    const ds = Math.hypot(c[0] - b[0], c[1] - b[1]), turn = Math.abs(((a2 - a1 + 3 * Math.PI) % TAU) - Math.PI);
+    const k = ds ? turn / ds : 0;
+    T.push(T[i - 1] + ds * (1 + 0.9 * clamp(k * 22, 0, 2.2)));
+  }
+  const tot = T[T.length - 1]; return T.map(v => v / tot);
+})();
+function walkS(q) { // доля времени -> длина дуги (в px знака)
+  const i = idxAt(WALK_T, q), j = Math.min(WALK.length - 1, i + 1), t = (q - WALK_T[i]) / ((WALK_T[j] - WALK_T[i]) || 1);
+  return WALK_LC[i] + (WALK_LC[j] - WALK_LC[i]) * clamp(t, 0, 1);
+}
+
+const IMG = {};
+const SRC = { red: 'assets/yo-red.webp', dots: 'assets/yo-dots.webp', line: 'assets/yo-line.webp', rings: 'assets/yo-rings.webp' };
+
+/* =====================================================================
+   Сцена
+   ===================================================================== */
+const stage = $('#stage'), ctx = stage.getContext('2d');
+const logoEl = $('#logo'), heroEl = $('#top'), pocketEl = $('#pocket'), hintEl = $('#hint');
+const maskR = document.createElement('canvas'), maskW = document.createElement('canvas');
+const cache = document.createElement('canvas');
+let dpr = 1, VW = 0, VH = 0, lay = null, home = { x: 0, y: 0 }, walkP = [], walkL = [];
+const toPage = p => [lay.a * p[0] + lay.e, lay.a * p[1] + lay.f];
+
+function bowlAt(u) {
+  const q = at(BOWL, BOWL_L, BOWL_S0 + u / lay.a);
+  let nx = q[3], ny = -q[2]; if (ny > 0) { nx = -nx; ny = -ny; }
+  const p = toPage(q), off = lay.R + lay.lw * 0.5 + 0.6;
+  return { x: p[0] + nx * off, y: p[1] + ny * off };
+}
+
+function layout() {
+  VW = document.documentElement.clientWidth; VH = window.innerHeight;
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  stage.width = Math.round(VW * dpr); stage.height = Math.round(VH * dpr);
+  const r = logoEl.getBoundingClientRect();
+  const L = r.left + window.scrollX, T = r.top + window.scrollY, k = r.width / (BOX[2] - BOX[0]);
+  lay = { L, T, Wd: r.width, Ht: r.height, k, a: REG.s * k, e: L + (REG.tx - BOX[0]) * k, f: T + (REG.ty - BOX[1]) * k, R: VW < 640 ? 5.5 : 7 };
+  lay.lw = Math.max(0.8, 6.5 * lay.a);
+  home = bowlAt(0);
+  walkP = WALK.map(toPage); walkL = lengths(walkP);
+  for (const m of [maskR, maskW]) { m.width = Math.ceil(CW * lay.a * dpr) + 2; m.height = Math.ceil(CH * lay.a * dpr) + 2; }
+  buildScrollPath();
+  if (intro.done) buildCache();
+  if (motion === null && scrollShown < 0.5) { ball.x = home.x; ball.y = home.y; }
+}
+
+/* ---------- рисование знака ---------- */
+function letterXf(c, ox, oy, s) { c.setTransform(s * lay.k, 0, 0, s * lay.k, s * (lay.L - ox - BOX[0] * lay.k), s * (lay.T - oy - BOX[1] * lay.k)); }
+function drawLetters(c, ox, oy, s, t) {
+  c.fillStyle = LETTER;
+  for (const l of LET) {
+    let p = 1;
+    if (t !== null) { p = clamp((t - (T.letters + l.rank * 85)) / 560, 0, 1); if (p <= 0) continue; }
+    letterXf(c, ox, oy, s);
+    if (p < 1) {
+      const g = E.back(p), dx = -l.side * (1 - E.out(p)) * 46;
+      c.globalAlpha = clamp(p * 3, 0, 1);
+      c.translate(l.ax + dx, l.ay); c.scale(1, Math.max(0.001, g)); c.translate(-l.ax, -l.ay);
+    }
+    c.fill(l.path, 'evenodd'); c.globalAlpha = 1;
+  }
+}
+function yoXf(c, ox, oy, s) { c.setTransform(s * lay.a, 0, 0, s * lay.a, s * (lay.e - ox), s * (lay.f - oy)); }
+function drawDotsRings(c, ox, oy, s, t) {
+  DOTS.forEach((d, i) => {
+    const p = t === null ? 1 : clamp((t - (T.dots + i * 110)) / 380, 0, 1); if (p <= 0) return;
+    const g = E.back(p), b = d.bbox, pad = 14;
+    yoXf(c, ox, oy, s); c.translate(d.cx, d.cy); c.scale(g, g); c.translate(-d.cx, -d.cy);
+    c.drawImage(IMG.dots, b[0] - pad, b[1] - pad, b[2] + 2 * pad, b[3] + 2 * pad, b[0] - pad, b[1] - pad, b[2] + 2 * pad, b[3] + 2 * pad);
+  });
+  DOTS.forEach((d, i) => {
+    const p = t === null ? 1 : clamp((t - (T.rings + i * 120)) / 420, 0, 1); if (p <= 0) return;
+    yoXf(c, ox, oy, s); c.save();
+    if (p < 1) { const a0 = -2.4 + i * 0.5; c.beginPath(); c.moveTo(d.cx, d.cy); c.arc(d.cx, d.cy, 200, a0, a0 + TAU * E.inout(p)); c.closePath(); c.clip(); }
+    const x0 = Math.max(0, d.cx - 120), y0 = Math.max(0, d.cy - 90), w = Math.min(240, CW - x0), h = Math.min(180, CH - y0);
+    c.drawImage(IMG.rings, x0, y0, w, h, x0, y0, w, h);
+    c.restore();
+  });
+}
+function drawFull(c, ox, oy, s) {
+  yoXf(c, ox, oy, s); c.drawImage(IMG.red, 0, 0);
+  drawDotsRings(c, ox, oy, s, null);
+  drawLetters(c, ox, oy, s, null);
+  yoXf(c, ox, oy, s); c.drawImage(IMG.line, 0, 0);
+}
+function buildCache() {
+  const pad = 8; cache.width = Math.ceil((lay.Wd + 2 * pad) * dpr); cache.height = Math.ceil((lay.Ht + 2 * pad) * dpr);
+  const c = cache.getContext('2d'); c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, cache.width, cache.height);
+  drawFull(c, lay.L - pad, lay.T - pad, dpr); c.setTransform(1, 0, 0, 1, 0, 0);
+  cache.pad = pad;
+}
+// слой знака, проявленный «кистью» вдоль путей
+function masked(m, img, parts) {
+  const c = m.getContext('2d');
+  c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'source-over'; c.clearRect(0, 0, m.width, m.height);
+  c.setTransform(lay.a * dpr, 0, 0, lay.a * dpr, 0, 0); c.lineCap = 'round'; c.lineJoin = 'round'; c.strokeStyle = '#000';
+  let any = false;
+  for (const p of parts) { if (p.s <= 0) continue; any = true; c.lineWidth = p.w; strokeTo(c, p.P, p.L, p.s); }
+  if (!any) return false;
+  c.globalCompositeOperation = 'source-in'; c.drawImage(img, 0, 0); c.globalCompositeOperation = 'source-over';
+  return true;
+}
+
+/* =====================================================================
+   Шар: белый, с красной точкой, которая крутится, когда он катится
+   ===================================================================== */
+const ball = { x: 0, y: 0, a: 1, s: 1, show: false };
+const spot = [0.42, -0.36, 0.83];
+let lastBX = null, lastBY = null;
+function roll(dx, dy, r) {
+  const d = Math.hypot(dx, dy); if (d < 0.01) return;
+  const ax = -dy / d, ay = dx / d, th = d / r, c = Math.cos(th), s = Math.sin(th);
+  const [vx, vy, vz] = spot, adv = ax * vx + ay * vy;
+  const cx = ay * vz, cy = -ax * vz, cz = ax * vy - ay * vx;
+  let x = vx * c + cx * s + ax * adv * (1 - c), y = vy * c + cy * s + ay * adv * (1 - c), z = vz * c + cz * s;
+  const n = Math.hypot(x, y, z) || 1; spot[0] = x / n; spot[1] = y / n; spot[2] = z / n;
+}
+function drawBall(c, x, y, r, alpha) {
+  if (alpha <= 0 || r <= 0.2) return;
+  c.globalAlpha = alpha; c.fillStyle = PAPER; c.beginPath(); c.arc(x, y, r, 0, TAU); c.fill();
+  if (spot[2] > -0.2) {
+    c.save(); c.beginPath(); c.arc(x, y, r, 0, TAU); c.clip();
+    const k = clamp((spot[2] + 0.2) / 1.2, 0, 1), ang = Math.atan2(spot[1], spot[0]);
+    c.fillStyle = RED; c.beginPath(); c.ellipse(x + spot[0] * r * 0.9, y + spot[1] * r * 0.9, r * 0.36 * Math.max(0.18, spot[2]), r * 0.36, ang, 0, TAU); c.fill();
+    c.restore();
+  }
+  c.globalAlpha = 1;
+}
+
+/* =====================================================================
+   Следы шара: плавные белые линии, гаснут сами
+   ===================================================================== */
+const trails = [];
+function addTrail(P, opts = {}) { const t = { P, L: lengths(P), s: 0, doneAt: 0, fade: opts.fade || 5200, alpha: opts.alpha || 0.85 }; trails.push(t); if (trails.length > 9) trails.shift(); return t; }
+function drawTrails(c, now) {
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = VW < 640 ? 1 : 1.25; c.strokeStyle = PAPER;
+  for (let i = trails.length - 1; i >= 0; i--) {
+    const t = trails[i]; let a = t.alpha;
+    if (t.doneAt) { a *= 1 - clamp((now - t.doneAt) / t.fade, 0, 1); if (a <= 0) { trails.splice(i, 1); continue; } }
+    c.globalAlpha = a; strokeTo(c, t.P, t.L, t.s);
+  }
+  c.globalAlpha = 1;
+}
+
+/* =====================================================================
+   Интро: шар въезжает, рисует белую петлю Ё, рядом вырастает красная Ё, точки, буквы
+   ===================================================================== */
+const T = { entry: 0, walk: 640, walkDur: 1400, drop: 0, dropDur: 520, red: [1380, 1640, 1740, 2010], redDur: [400, 260, 520, 420], dots: 2260, rings: 2330, letters: 2360, end: 3260 };
+const intro = { ready: false, done: false, t0: 0, entry: null, drop: null, swingAt: 0 };
+function prepIntro() {
+  const w0 = walkP[0], d = at(walkP, walkL, 0);
+  const narrow = VW < 640;
+  const S = [-40, narrow ? VH * 0.08 : VH * 0.16];
+  const M = { x: narrow ? VW * 0.2 : Math.max(VW * 0.1, lay.L - 40), y: narrow ? VH * 0.16 : VH * 0.3, loop: { side: -1, r: narrow ? 46 : clamp(VW * 0.05, 50, 92), e: 1.5 } };
+  const lead = narrow ? 70 : 130;
+  const Q = { x: w0[0] - d[2] * lead, y: w0[1] - d[3] * lead };
+  const P = curl([{ x: S[0], y: S[1] }, { x: (S[0] + M.x) / 2, y: S[1] + (M.y - S[1]) * 0.4 }, M, Q, { x: w0[0], y: w0[1] }], 3);
+  intro.entry = addTrail(P, { alpha: 0.7, fade: 1800 });
+  T.walkDur = clamp(walkL[walkL.length - 1] / 0.8, 1050, 1450);
+  T.drop = T.walk + T.walkDur;
+  const r0 = T.walk + 0.68 * T.walkDur; T.red = [r0, r0 + 250, r0 + 340, r0 + 600];
+  const e0 = walkP[walkP.length - 1], de = at(walkP, walkL, walkL[walkL.length - 1]);
+  const P2 = curl([{ x: e0[0], y: e0[1] }, { x: e0[0] + de[2] * 22, y: e0[1] + de[3] * 22 }, { x: (e0[0] + home.x) / 2 - lay.R * 3, y: e0[1] + (home.y - e0[1]) * 0.62 }, { x: home.x - lay.R * 2.4, y: home.y - lay.R * 2.2 }, { x: home.x, y: home.y }], 2);
+  intro.drop = addTrail(P2, { alpha: 0.7, fade: 1800 });
+  T.dots = Math.max(T.red[3] + 260, T.drop + T.dropDur - 120); T.rings = T.dots + 70; T.letters = T.dots + 110; T.end = T.letters + 3 * 85 + 620;
+}
+function introBall(t) {
+  const en = intro.entry, dr = intro.drop;
+  if (t < T.walk) { // въезд: быстро, к петле знака подходит медленнее
+    const q = t / T.walk, s = en.L[en.L.length - 1] * (0.45 * q + 0.55 * E.pow(1.7)(q));
+    en.s = s; const p = at(en.P, en.L, s); return [p[0], p[1], 0];
+  }
+  en.s = en.L[en.L.length - 1];
+  if (t < T.drop) { const s = walkS((t - T.walk) / T.walkDur) * lay.a; const p = at(walkP, walkL, s); return [p[0], p[1], s]; }
+  if (t < T.drop + T.dropDur) { const q = (t - T.drop) / T.dropDur, s = dr.L[dr.L.length - 1] * (0.35 * q + 0.65 * q * q); dr.s = s; const p = at(dr.P, dr.L, s); return [p[0], p[1], walkL[walkL.length - 1]]; }
+  dr.s = dr.L[dr.L.length - 1];
+  return null;
+}
+function finishIntro(now) {
+  if (intro.done) return;
+  intro.done = true; buildCache();
+  if (intro.entry) { intro.entry.s = intro.entry.L[intro.entry.L.length - 1]; intro.entry.doneAt = now; }
+  if (intro.drop) { intro.drop.s = intro.drop.L[intro.drop.L.length - 1]; intro.drop.doneAt = now; }
+  if (!motion) { ball.x = home.x; ball.y = home.y; }
+  ball.show = true;
+  try { if (window.claude && window.claude.hot) window.claude.hot.data = { introDone: true }; } catch (e) { /* без горячей перезагрузки */ }
+}
+
+/* =====================================================================
+   Движения шара после интро: удар к точке, возвращение в чашу Ё, покачивание
+   ===================================================================== */
+let motion = null, side = 1, idleTimer = 0;
+function startPath(P, dur, ease, then) { motion = { kind: 'path', P, L: lengths(P), t0: performance.now(), dur, ease, then, trail: addTrail(P) }; kick(); }
+function startSwing(amp) { motion = { kind: 'swing', t0: performance.now(), amp, w: TAU / 0.95, tau: 0.8 }; ball.show = true; kick(); }
+function heading() {
+  if (motion && motion.kind === 'path') { const q = clamp((performance.now() - motion.t0) / motion.dur, 0, 1); const p = at(motion.P, motion.L, motion.L[motion.L.length - 1] * motion.ease(q)); return [p[2], p[3]]; }
+  return null;
+}
+function strikeTo(tx, ty) {
+  clearTimeout(idleTimer); idleTimer = 0;
+  const fx = ball.x, fy = ball.y, dx = tx - fx, dy = ty - fy, d = Math.hypot(dx, dy);
+  if (d < lay.R * 2.5) return;
+  const ux = dx / d, uy = dy / d; side = -side;
+  let h = heading();
+  if (!h) { const g = side * 1.1; h = [ux * Math.cos(g) - uy * Math.sin(g), ux * Math.sin(g) + uy * Math.cos(g)]; }
+  const lead = Math.min(120, d * 0.3), bend = d * 0.17, g2 = -side * 0.75, back = Math.min(90, d * 0.22);
+  const ax = ux * Math.cos(g2) - uy * Math.sin(g2), ay = ux * Math.sin(g2) + uy * Math.cos(g2);
+  const W = [{ x: fx, y: fy }, { x: fx + h[0] * lead, y: fy + h[1] * lead },
+    { x: fx + dx * 0.5 - uy * side * bend, y: fy + dy * 0.5 + ux * side * bend, loop: { side, r: clamp(d * 0.13, 20, VW < 640 ? 46 : 90), e: 1.55 } },
+    { x: tx - ax * back, y: ty - ay * back },
+    { x: tx, y: ty }];
+  const P = curl(W, 3), L = lengths(P)[P.length - 1];
+  startPath(P, clamp(L / 1.15, 700, 2200), E.pow(2.3), 'rest');
+}
+function returnHome() {
+  if (scrollShown > 0.5) return;
+  const fx = ball.x, fy = ball.y, dx = home.x - fx, dy = home.y - fy, d = Math.hypot(dx, dy);
+  if (d < 2) { startSwing(lay.R * 1.2); return; }
+  side = -side;
+  const ux = dx / Math.max(d, 1), uy = dy / Math.max(d, 1), g = side * 0.9;
+  const h = [ux * Math.cos(g) - uy * Math.sin(g), ux * Math.sin(g) + uy * Math.cos(g)], lead = Math.min(90, d * 0.25);
+  const above = Math.max(40, lay.R * 7);
+  const W = [{ x: fx, y: fy }, { x: fx + h[0] * lead, y: fy + h[1] * lead }];
+  if (d > 140) W.push({ x: fx + dx * 0.5 + uy * side * d * 0.08, y: fy + dy * 0.5 - ux * side * d * 0.08, loop: { side: -side, r: clamp(d * 0.1, 18, 60), e: 1.5 } });
+  W.push({ x: home.x - side * lay.R * 3, y: home.y - above }, { x: home.x, y: home.y });
+  const P = curl(W, 3), L = lengths(P)[P.length - 1];
+  startPath(P, clamp(L / 0.9, 800, 2400), E.inout, 'swing');
+}
+/* ---------- за курсором: шар едет следом с отставанием и время от времени закручивает петлю ---------- */
+const canHover = matchMedia('(hover: hover) and (pointer: fine)').matches;
+const FOL = { wn: TAU / 1.0, z: 0.9, vmax: 1100, mag: 1.2, first: 110, gap: [320, 520], rk: 0.045, rmin: 16, rmax: 40, e: 1.65, slow: 0.55, lsp: 1.7, life: 2600 };
+const fol = { on: false, cx: 0, cy: 0, gx: 0, gy: 0, vx: 0, vy: 0, side: 1, travel: 0, next: FOL.first, loop: null, lastMove: 0, t: 0, clock: 0, kick: false };
+const live = [];
+let lastPtr = canHover ? 'mouse' : 'touch';
+const canFollow = () => lay && intro.done && window.scrollY < 40 && scrollShown <= 0.5;
+const heroBottom = () => heroEl.getBoundingClientRect().bottom + window.scrollY;
+function startFollow(now) {
+  if (motion) { if (motion.trail) motion.trail.doneAt = now; motion = null; }
+  clearTimeout(idleTimer); idleTimer = 0;
+  Object.assign(fol, { on: true, gx: ball.x, gy: ball.y, vx: 0, vy: 0, travel: 0, next: FOL.first, loop: null, t: now });
+  live.push({ x: ball.x, y: ball.y, t: now, brk: true });
+  hintEl.classList.add('is-used');
+}
+function stopFollow(goHome) { fol.on = false; fol.loop = null; if (goHome) returnHome(); }
+function startLoop(sp, big) {
+  const r = big ? 48 : clamp(sp * FOL.rk, FOL.rmin, FOL.rmax) * (VW < 640 ? 0.7 : 1);
+  const e = (big ? 1.9 : FOL.e) * (0.85 + 0.3 * Math.random()), L = TAU * r * (1 + e) / 2;
+  const s = Math.max(sp, 1), tx = sp > 1 ? fol.vx / s : 1, ty = sp > 1 ? fol.vy / s : 0;
+  fol.loop = { t0: fol.clock, D: clamp(L / Math.max(sp * FOL.lsp, 380), 0.3, big ? 0.85 : 0.7), r, e, s: fol.side, tx, ty };
+  fol.side = -fol.side; fol.travel = 0; fol.next = FOL.gap[0] + Math.random() * (FOL.gap[1] - FOL.gap[0]);
+}
+function stepFollow(now) {
+  let dt = (now - fol.t) / 1000; fol.t = now; dt = clamp(dt, 0, 0.05);
+  const n = Math.max(1, Math.ceil(dt * 240)), h = dt / n;
+  let x = ball.x, y = ball.y;
+  for (let i = 0; i < n; i++) {
+    let sp = Math.hypot(fol.vx, fol.vy);
+    const px = sp > 1e-6 ? -fol.vy / sp : 0, py = sp > 1e-6 ? fol.vx / sp : 0, mag = FOL.mag * fol.side * Math.min(1, sp / 300);
+    fol.vx += (FOL.wn * FOL.wn * (fol.cx - fol.gx) - 2 * FOL.z * FOL.wn * fol.vx + mag * px * sp) * h;
+    fol.vy += (FOL.wn * FOL.wn * (fol.cy - fol.gy) - 2 * FOL.z * FOL.wn * fol.vy + mag * py * sp) * h;
+    sp = Math.hypot(fol.vx, fol.vy);
+    if (sp > FOL.vmax) { fol.vx *= FOL.vmax / sp; fol.vy *= FOL.vmax / sp; sp = FOL.vmax; }
+    const slow = fol.loop ? FOL.slow : 1;
+    fol.gx += fol.vx * h * slow; fol.gy += fol.vy * h * slow; fol.travel += sp * h * slow; fol.clock += h;
+    if (!fol.loop && !reduce && (fol.kick || (fol.travel > fol.next && sp > 140))) { startLoop(sp, fol.kick); fol.kick = false; }
+    let ox = 0, oy = 0;
+    if (fol.loop) {
+      const lp = fol.loop, q = (fol.clock - lp.t0) / lp.D;
+      if (q >= 1) fol.loop = null;
+      else {
+        const f = TAU * q, c = 1 - Math.cos(f), sn = Math.sin(f), nx = -lp.ty * lp.s, ny = lp.tx * lp.s;
+        ox = nx * lp.r * lp.e * c + lp.tx * lp.r * sn; oy = ny * lp.r * lp.e * c + lp.ty * lp.r * sn;
+      }
+    }
+    x = fol.gx + ox; y = fol.gy + oy;
+    if (i % 2 === 1 || i === n - 1) live.push({ x, y, t: now });
+  }
+  ball.x = x; ball.y = y;
+  // мышь замерла и шар догнал её: через пару секунд он возвращается в Ё
+  if (now - fol.lastMove > 2200 && !fol.loop && Math.hypot(fol.vx, fol.vy) < 8) stopFollow(true);
+}
+function drawLive(c, now) {
+  while (live.length && now - live[0].t > FOL.life) live.shift();
+  if (live.length < 2) return false;
+  c.lineCap = 'round'; c.lineJoin = 'round'; c.lineWidth = VW < 640 ? 1 : 1.25; c.strokeStyle = PAPER;
+  for (let i = 0; i < live.length - 1;) {
+    const j = Math.min(live.length - 1, i + 6);
+    c.globalAlpha = 0.85 * clamp(1 - (now - live[j].t) / FOL.life, 0, 1);
+    c.beginPath(); c.moveTo(live[i].x, live[i].y);
+    for (let k = i + 1; k <= j; k++) { if (live[k].brk) c.moveTo(live[k].x, live[k].y); else c.lineTo(live[k].x, live[k].y); }
+    c.stroke(); i = j;
+  }
+  c.globalAlpha = 1; return true;
+}
+window.addEventListener('pointermove', e => {
+  lastPtr = e.pointerType || lastPtr;
+  if (e.pointerType === 'touch' || !canFollow()) return;
+  const now = performance.now();
+  if (e.pageY > heroBottom()) { if (fol.on) { stopFollow(false); idleTimer = setTimeout(() => { idleTimer = 0; if (!fol.on) returnHome(); }, 500); } return; }
+  fol.cx = e.pageX; fol.cy = e.pageY; fol.lastMove = now;
+  if (!fol.on && Math.hypot(e.pageX - ball.x, e.pageY - ball.y) > lay.R * 3) startFollow(now);
+  kick();
+}, { passive: true });
+document.documentElement.addEventListener('mouseleave', () => { if (fol.on) { stopFollow(false); idleTimer = setTimeout(() => { idleTimer = 0; if (!fol.on) returnHome(); }, 500); } });
+heroEl.addEventListener('click', ev => {
+  if (ev.target.closest('a, button, input, label, select, textarea')) return;
+  if (!lay || window.scrollY > 40 || scrollShown > 0.5) return;
+  const now = performance.now();
+  if (!intro.done) finishIntro(now);
+  if ((ev.pointerType || lastPtr) !== 'touch' && canHover) {
+    // щелчок мышью: шар закручивает большую петлю
+    fol.cx = ev.pageX; fol.cy = ev.pageY; fol.lastMove = now;
+    if (!fol.on) startFollow(now);
+    fol.kick = true; kick();
+  } else strikeTo(ev.pageX, ev.pageY);
+  hintEl.classList.add('is-used');
+});
+
+/* =====================================================================
+   Прокрутка: шар скатывается из чаши Ё в лузу над Ё в заголовке записи
+   ===================================================================== */
+let sp = null, scrollShown = 0, scrollGoal = 0, blend = null;
+function buildScrollPath() {
+  const pr = pocketEl.getBoundingClientRect(), hb = heroEl.getBoundingClientRect().bottom + window.scrollY;
+  const tx = pr.left + window.scrollX + pr.width * 0.5, ty = pr.top + window.scrollY + pr.height * 0.55;
+  const narrow = VW < 640, sy = window.scrollY;
+  const say = $('.hero-say').getBoundingClientRect(), act = $('.hero-act').getBoundingClientRect();
+  let W;
+  if (!narrow) {
+    const cx = (say.right + act.left) / 2 + window.scrollX, rowY = (say.top + say.bottom) / 2 + sy;
+    W = [
+      { x: home.x, y: home.y },
+      { x: home.x + 26, y: home.y + 44 },
+      { x: cx, y: rowY, loop: { side: -1, r: 42, e: 1.6 } },
+      { x: cx + 70, y: hb - 70 },
+      { x: tx + 250, y: ty - 140, loop: { side: 1, r: 30, e: 1.5 } },
+      { x: tx + lay.R * 1.5, y: ty - lay.R * 7 },
+      { x: tx, y: ty }
+    ];
+  } else {
+    const below = act.bottom + sy + 26;
+    W = [
+      { x: home.x, y: home.y },
+      { x: home.x + 22, y: home.y + 36 },
+      { x: VW * 0.84, y: (home.y + below) / 2 },
+      { x: VW * 0.62, y: Math.min(hb - 70, below + (hb - below) * 0.45), loop: { side: -1, r: 30, e: 1.6 } },
+      { x: VW * 0.5, y: hb + 10 },
+      { x: tx + 70, y: ty - 80, loop: { side: 1, r: 18, e: 1.5 } },
+      { x: tx + lay.R * 1.2, y: ty - lay.R * 6 },
+      { x: tx, y: ty }
+    ];
+  }
+  const P = curl(W, 4); let m = -1e9; const M = P.map(p => (m = Math.max(m, p[1])));
+  sp = { P, L: lengths(P), M, y0: P[0][1], ymax: m, tx, ty, s1: Math.max(120, ty - VH * 0.42) };
+  scrollGoalCalc(); if (reduce || !intro.done) scrollShown = scrollGoal;
+}
+function scrollGoalCalc() {
+  if (!sp) return;
+  const p = clamp(window.scrollY / sp.s1, 0, 1);
+  if (p <= 0) { scrollGoal = 0; return; }
+  const lim = sp.y0 + (sp.ymax - sp.y0) * p; let lo = 0, hi = sp.P.length - 1;
+  while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (sp.M[mid] <= lim) lo = mid; else hi = mid - 1; }
+  scrollGoal = p >= 1 ? sp.P.length - 1 : lo;
+}
+
+/* =====================================================================
+   Кадр
+   ===================================================================== */
+let raf = 0;
+function kick() { if (!raf) raf = requestAnimationFrame(frame); }
+function frame(now) {
+  raf = 0; if (!lay || !intro.ready) return;
+  let busy = false;
+  const sy = window.scrollY;
+  document.documentElement.classList.toggle('is-scrolled', sy > lay.T + lay.Ht * 0.6);
+
+  // интро
+  let t = null, walkShown = null;
+  if (!intro.done) {
+    t = now - intro.t0;
+    const b = introBall(t);
+    if (b) { ball.x = b[0]; ball.y = b[1]; walkShown = b[2]; ball.show = true; }
+    else { walkShown = walkL[walkL.length - 1]; if (!motion) { startSwing(lay.R * 2.6); } }
+    if (t >= T.end) finishIntro(now);
+    busy = true;
+  }
+
+  // прокрутка
+  const prevShown = scrollShown;
+  if (Math.abs(scrollGoal - scrollShown) > 0.4) { scrollShown += (scrollGoal - scrollShown) * (reduce ? 1 : 0.17); busy = true; } else scrollShown = scrollGoal;
+  const onPath = scrollShown > 0.5;
+  if (!onPath && prevShown > 0.5) { ball.x = home.x; ball.y = home.y; }
+  if (onPath && prevShown <= 0.5) {
+    if (fol.on) stopFollow(false);
+    if (motion) { if (motion.trail) motion.trail.doneAt = now; motion = null; }
+    clearTimeout(idleTimer); idleTimer = 0;
+    blend = Math.hypot(ball.x - home.x, ball.y - home.y) > 2 ? { x: ball.x, y: ball.y, t0: now } : null;
+    if (!intro.done) finishIntro(now);
+  }
+
+  // за курсором
+  if (fol.on && !onPath && intro.done) { stepFollow(now); busy = true; }
+
+  // движение после интро
+  if (!fol.on && (!onPath && motion && intro.done || (!intro.done && motion && motion.kind === 'swing' && t >= T.drop + T.dropDur))) {
+    const q = clamp((now - motion.t0) / (motion.dur || 1), 0, 1);
+    if (motion.kind === 'path') {
+      const s = motion.L[motion.L.length - 1] * motion.ease(q), p = at(motion.P, motion.L, s);
+      ball.x = p[0]; ball.y = p[1]; motion.trail.s = s;
+      if (q >= 1) {
+        motion.trail.doneAt = now; const then = motion.then, P = motion.P; motion = null;
+        const dir = Math.sign(P[P.length - 1][0] - P[Math.max(0, P.length - 6)][0]) || 1;
+        if (then === 'swing') startSwing(lay.R * 1.5 * dir);
+        else if (then === 'rest') idleTimer = setTimeout(() => { idleTimer = 0; returnHome(); }, 2600);
+      }
+    } else if (motion.kind === 'swing') {
+      const el = (now - motion.t0) / 1000, u = reduce ? 0 : motion.amp * Math.exp(-el / motion.tau) * Math.sin(motion.w * el);
+      const p = bowlAt(u); ball.x = p.x; ball.y = p.y;
+      if (el > 3.2 || reduce) { motion = null; const h = bowlAt(0); ball.x = h.x; ball.y = h.y; }
+    }
+    busy = true;
+  }
+  let landed = false, bScale = 1;
+  if (onPath && sp) {
+    const i = Math.min(sp.P.length - 1, Math.round(scrollShown)); let x = sp.P[i][0], y = sp.P[i][1];
+    if (blend) { const k = E.out(clamp((now - blend.t0) / 380, 0, 1)); x = blend.x + (x - blend.x) * k; y = blend.y + (y - blend.y) * k; if (k >= 1) blend = null; else busy = true; }
+    ball.x = x; ball.y = y;
+    const left = sp.P.length - 1 - scrollShown; bScale = clamp(left / 7, 0, 1); landed = left < 1.2;
+  } else if (!fol.on && !motion && intro.done && scrollShown <= 0.5 && Math.hypot(ball.x - home.x, ball.y - home.y) > 0.5 && !idleTimer) {
+    ball.x = home.x; ball.y = home.y;
+  }
+  pocketEl.classList.toggle('is-in', landed);
+
+  if (lastBX !== null) roll(ball.x - lastBX, ball.y - lastBY, lay.R);
+  lastBX = ball.x; lastBY = ball.y;
+
+  // ---- рисуем ----
+  ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, stage.width, stage.height);
+  const logoVisible = lay.T + lay.Ht + 80 > sy && lay.T - 80 < sy + VH;
+  if (logoVisible) {
+    if (intro.done) { ctx.drawImage(cache, Math.round((lay.L - cache.pad) * dpr), Math.round((lay.T - cache.pad - sy) * dpr)); }
+    else {
+      const parts = REDP.map((p, i) => ({ w: p.w, P: p.P, L: p.L, s: p.L[p.L.length - 1] * E.inout(clamp((t - T.red[i]) / T.redDur[i], 0, 1)) }));
+      if (masked(maskR, IMG.red, parts)) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(maskR, Math.round(lay.e * dpr), Math.round((lay.f - sy) * dpr)); }
+      drawDotsRings(ctx, 0, sy, dpr, t);
+      drawLetters(ctx, 0, sy, dpr, t);
+      if (walkShown !== null && masked(maskW, IMG.line, [{ w: 18, P: WALK, L: WALK_LC, s: walkShown / lay.a }])) { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(maskW, Math.round(lay.e * dpr), Math.round((lay.f - sy) * dpr)); }
+    }
+  }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, -sy * dpr);
+  drawTrails(ctx, now);
+  if (drawLive(ctx, now)) busy = true;
+  if (trails.some(tr => tr.doneAt)) busy = true;
+  if (sp && scrollShown > 0.5) { ctx.globalAlpha = 0.8; ctx.lineWidth = VW < 640 ? 1 : 1.25; ctx.strokeStyle = PAPER; strokeTo(ctx, sp.P, sp.L, sp.L[Math.min(sp.P.length - 1, Math.round(scrollShown))]); ctx.globalAlpha = 1; }
+  if (ball.show && !landed) drawBall(ctx, ball.x, ball.y, lay.R * (0.35 + 0.65 * bScale), 1);
+  if (busy || motion || fol.on) kick();
+}
+
+window.addEventListener('scroll', () => { scrollGoalCalc(); kick(); }, { passive: true });
+let rt = 0;
+let lastW = 0;
+window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { const w = document.documentElement.clientWidth; if (w !== lastW && !intro.done && lastW) finishIntro(performance.now()); lastW = w; layout(); kick(); }, 120); });
+
+/* =====================================================================
+   Бланк записи
+   ===================================================================== */
+const OPEN_H = 14, CLOSE_H = 26; // 14:00–02:00, заглушка до настоящих часов
+const WD = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'];
+const WD_FULL = ['воскресенье', 'понедельник', 'вторник', 'среда', 'четверг', 'пятница', 'суббота'];
+const MON = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+const form = $('#form'), done = $('#done'), daysEl = $('#days'), timesEl = $('#times');
+const nameI = $('#name'), phoneI = $('#phone'), guestsO = $('#guests');
+let selDay = null, guests = 2;
+const iso = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+const midnight = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const longDate = d => `${WD_FULL[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`;
+function slots(day) {
+  const now = Date.now(), out = [];
+  for (let h = OPEN_H; h < CLOSE_H; h++) { const t = new Date(day); t.setHours(h, 0, 0, 0); out.push({ h, label: `${String(h % 24).padStart(2, '0')}:00`, off: t.getTime() < now + 30 * 60 * 1000 }); }
+  return out;
+}
+function chip(cls, name, value, inner, label, disabled) {
+  const l = document.createElement('label'); l.className = 'chip ' + cls;
+  const i = document.createElement('input'); i.type = 'radio'; i.name = name; i.value = value; i.disabled = !!disabled; if (label) i.setAttribute('aria-label', label);
+  const s = document.createElement('span'); if (typeof inner === 'string') s.textContent = inner; else s.append(...inner);
+  l.append(i, s); return l;
+}
+function span(cls, text) { const s = document.createElement('span'); s.className = cls; s.textContent = text; return s; }
+function renderDays() {
+  daysEl.textContent = '';
+  const today = midnight(new Date());
+  let first = null;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(d.getDate() + i);
+    const off = slots(d).every(s => s.off);
+    const c = chip('day', 'day', iso(d), [span('wd', i === 0 ? 'сегодня' : i === 1 ? 'завтра' : WD[d.getDay()]), span('dn', String(d.getDate()))], longDate(d), off);
+    daysEl.append(c); if (!off && !first) first = c.querySelector('input');
+  }
+  const other = chip('day other', 'day', 'other', 'другой день', null);
+  daysEl.append(other);
+  odI.min = iso(today);
+  if (first) { first.checked = true; selDay = new Date(first.value + 'T00:00'); }
+  renderTimes();
+}
+const odWrap = $('#otherday'), odI = $('#od');
+odI.addEventListener('change', () => {
+  if (!odI.value) return; const [y, m, d] = odI.value.split('-').map(Number); selDay = new Date(y, m - 1, d);
+  daysEl.querySelector('.other span').textContent = `${WD[selDay.getDay()]}, ${selDay.getDate()} ${MON[selDay.getMonth()]}`;
+  renderTimes();
+});
+daysEl.addEventListener('change', e => {
+  const r = e.target; if (r.type !== 'radio') return;
+  odWrap.hidden = r.value !== 'other';
+  if (r.value === 'other') { odI.focus(); if (odI.value) odI.dispatchEvent(new Event('change')); else { selDay = null; renderTimes(); } return; }
+  const [y, m, d] = r.value.split('-').map(Number); selDay = new Date(y, m - 1, d); renderTimes();
+});
+function renderTimes() {
+  const prev = (timesEl.querySelector('input:checked') || {}).value;
+  timesEl.textContent = '';
+  if (!selDay) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'Сначала выберите дату.'; timesEl.append(p); return; }
+  const list = slots(selDay);
+  if (list.every(s => s.off)) { const p = document.createElement('p'); p.className = 'empty'; p.textContent = 'На этот день записаться уже нельзя. Выберите другой.'; timesEl.append(p); return; }
+  for (const s of list) { const c = chip('', 'time', String(s.h), s.label, null, s.off); timesEl.append(c); if (String(s.h) === prev && !s.off) c.querySelector('input').checked = true; }
+  $('#time-msg').textContent = '';
+}
+function setGuests(n) { const max = form.what.value === 'hall' ? 24 : 12; guests = clamp(n, 1, max); guestsO.textContent = guests; $('#g-minus').disabled = guests <= 1; $('#g-plus').disabled = guests >= max; }
+$('#g-minus').addEventListener('click', () => setGuests(guests - 1));
+$('#g-plus').addEventListener('click', () => setGuests(guests + 1));
+form.addEventListener('change', e => { if (e.target.name === 'what') setGuests(guests); });
+function digits() { let d = phoneI.value.replace(/\D/g, ''); if (d[0] === '7' || d[0] === '8') d = d.slice(1); if (d.length > 10 && (d[0] === '8' || d[0] === '7')) d = d.slice(1); return d.slice(0, 10); }
+function fmtPhone(d) { let s = '+7'; if (d.length) s += ' ' + d.slice(0, 3); if (d.length > 3) s += ' ' + d.slice(3, 6); if (d.length > 6) s += '-' + d.slice(6, 8); if (d.length > 8) s += '-' + d.slice(8, 10); return s; }
+phoneI.addEventListener('focus', () => { if (!phoneI.value) phoneI.value = '+7 '; });
+phoneI.addEventListener('blur', () => { if (phoneI.value.trim() === '+7') phoneI.value = ''; });
+phoneI.addEventListener('input', () => { const d = digits(); phoneI.value = d.length ? fmtPhone(d) : '+7 '; if (d.length === 10) clearErr(phoneI, '#phone-msg'); });
+nameI.addEventListener('input', () => { if (nameI.value.trim()) clearErr(nameI, '#name-msg'); });
+timesEl.addEventListener('change', () => { $('#time-msg').textContent = ''; });
+function err(el, msgSel, text) { if (el) el.setAttribute('aria-invalid', 'true'); $(msgSel).textContent = text; }
+function clearErr(el, msgSel) { if (el) el.removeAttribute('aria-invalid'); $(msgSel).textContent = ''; }
+const hoursWord = n => n === 1 ? 'час' : 'часа';
+form.addEventListener('submit', e => {
+  e.preventDefault();
+  let bad = null;
+  const time = timesEl.querySelector('input:checked');
+  if (!time) { err(null, '#time-msg', 'Выберите время'); bad = bad || timesEl.querySelector('input:not(:disabled)'); }
+  if (!nameI.value.trim()) { err(nameI, '#name-msg', 'Напишите, как к вам обращаться'); bad = bad || nameI; } else clearErr(nameI, '#name-msg');
+  if (digits().length !== 10) { err(phoneI, '#phone-msg', 'Нужно 10 цифр после +7'); bad = bad || phoneI; } else clearErr(phoneI, '#phone-msg');
+  if (bad) { bad.focus(); return; }
+  const h = Number(time.value), hours = Number(form.hours.value), hall = form.what.value === 'hall';
+  const start = new Date(selDay); start.setHours(h, 0, 0, 0);
+  $('#d-what').textContent = hall ? `Красный зал целиком на ${hours} ${hoursWord(hours)}` : `На ${hours} ${hoursWord(hours)} игры в бильярдном клубе «Кручёных»`;
+  $('#d-when').textContent = `${longDate(start)}, с ${String(h % 24).padStart(2, '0')}:00`;
+  $('#d-who').textContent = `${nameI.value.trim()}, ${fmtPhone(digits())}, нас будет ${guests}`;
+  form.hidden = true; done.hidden = false; done.focus({ preventScroll: true });
+  const r = done.getBoundingClientRect(); if (r.top < 60 || r.bottom > window.innerHeight) done.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'center' });
+  requestAnimationFrame(() => { buildScrollPath(); kick(); });
+});
+$('#edit').addEventListener('click', () => { done.hidden = true; form.hidden = false; requestAnimationFrame(() => { buildScrollPath(); kick(); nameI.focus(); }); });
+
+/* =====================================================================
+   Запуск
+   ===================================================================== */
+function boot(saved) {
+  hintEl.textContent = canHover ? 'Шар катится за курсором' : 'Коснитесь экрана, и шар покатится туда';
+  renderDays(); setGuests(2);
+  layout(); lastW = VW;
+  const skip = reduce || (saved && saved.introDone) || window.scrollY > 40;
+  Promise.all(Object.entries(SRC).map(([k, src]) => new Promise(res => { const im = new Image(); im.onload = im.onerror = () => { IMG[k] = im; res(); }; im.src = src; })))
+    .then(() => {
+      prepIntro(); intro.ready = true;
+      if (skip) { finishIntro(performance.now()); trails.length = 0; ball.x = home.x; ball.y = home.y; }
+      else { intro.t0 = performance.now(); }
+      kick();
+    });
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { layout(); kick(); });
+  if (window.ResizeObserver) { let rt2 = 0; new ResizeObserver(() => { clearTimeout(rt2); rt2 = setTimeout(() => { if (!lay) return; const keep = intro.done; layout(); if (keep) kick(); }, 100); }).observe(document.body); }
+}
+const hot = window.claude && window.claude.hot;
+if (hot && hot.snapshot) hot.snapshot(() => ({ introDone: intro.done }));
+if (hot && hot.ready) hot.ready(boot); else boot((hot && hot.data) || {});
+})();
+</script>
+</body>
+</html>

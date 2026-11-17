@@ -67,8 +67,6 @@ p{margin:0}
 .hero-say{font-size:clamp(18px,1.55vw,22px);line-height:1.4}
 .hero-say span{display:block;color:var(--mute)}
 .hero-act{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
-.hint{font-size:14px;line-height:1.4;color:var(--mute);text-align:right;transition:opacity .4s}
-.hint.is-used{opacity:.45}
 
 /* ---------- запись ---------- */
 .book{position:relative;z-index:2;max-width:var(--wide);margin:0 auto;padding:clamp(72px,11vh,128px) var(--gut) clamp(64px,10vh,112px);display:grid;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:24px;row-gap:32px;align-items:start;scroll-margin-top:0}
@@ -181,7 +179,6 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
   .hero-row{flex-direction:column;align-items:stretch}
   .hero-act{align-items:stretch}
   .hero-act .btn--solid{width:100%}
-  .hint{text-align:left}
   .chips{margin:0 -6px}
   .day>span{min-width:44px;padding:6px 2px}
   .times .chip span{min-width:60px;padding:6px 8px}
@@ -212,7 +209,6 @@ fieldset{border:0;margin:0;padding:0;min-width:0}
     <p class="hero-say">Бильярдный клуб и&nbsp;арт-пространство<span>Конногвардейский бульвар,&nbsp;6</span></p>
     <div class="hero-act">
       <a class="btn btn--solid" href="#zapis">Записаться на&nbsp;стол</a>
-      <p class="hint" id="hint">Нажмите в&nbsp;любом месте, и&nbsp;шар покатится туда</p>
     </div>
   </div>
 </section>
@@ -412,7 +408,7 @@ const SRC = { red: 'assets/yo-red.webp', dots: 'assets/yo-dots.webp', line: 'ass
    Сцена
    ===================================================================== */
 const stage = $('#stage'), ctx = stage.getContext('2d');
-const logoEl = $('#logo'), heroEl = $('#top'), pocketEl = $('#pocket'), hintEl = $('#hint');
+const logoEl = $('#logo'), heroEl = $('#top'), pocketEl = $('#pocket');
 const maskR = document.createElement('canvas'), maskW = document.createElement('canvas');
 const cache = document.createElement('canvas');
 let dpr = 1, VW = 0, VH = 0, lay = null, home = { x: 0, y: 0 }, walkP = [], walkL = [];
@@ -636,7 +632,6 @@ function startFollow(now) {
   clearTimeout(idleTimer); idleTimer = 0;
   Object.assign(fol, { on: true, gx: ball.x, gy: ball.y, vx: 0, vy: 0, travel: 0, next: FOL.first, loop: null, t: now });
   live.push({ x: ball.x, y: ball.y, t: now, brk: true });
-  hintEl.classList.add('is-used');
 }
 function stopFollow(goHome) { fol.on = false; fol.loop = null; if (goHome) returnHome(); }
 function startLoop(sp, big) {
@@ -710,7 +705,6 @@ heroEl.addEventListener('click', ev => {
     if (!fol.on) startFollow(now);
     fol.kick = true; kick();
   } else strikeTo(ev.pageX, ev.pageY);
-  hintEl.classList.add('is-used');
 });
 
 /* =====================================================================
@@ -957,7 +951,6 @@ $('#edit').addEventListener('click', () => { done.hidden = true; form.hidden = f
    Запуск
    ===================================================================== */
 function boot(saved) {
-  if (canHover) hintEl.textContent = 'Шар катится за курсором'; else hintEl.hidden = true; // на телефоне шар — пасхалка
   renderDays(); setGuests(2);
   layout(); lastW = VW;
   const skip = reduce || (saved && saved.introDone) || window.scrollY > 40;
